@@ -64,7 +64,7 @@ def fetch_ppomppu_deals():
         if not deals:
             return None
             
-        return "\n\n".join(deals[:25])
+        return "\n\n".join(deals[:50])
         
     except Exception as e:
         print(f"❌ 수집 오류: {e}")
@@ -73,17 +73,19 @@ def fetch_ppomppu_deals():
 def analyze_and_summarize(data):
     if not data: return None
         
-    # AI가 맘대로 형태를 바꾸지 못하도록 조건을 엄격하게 수정했습니다.
-    prompt = f"""다음 뽐뿌 핫딜 목록에서 가장 추천할 만한 베스트 핫딜 5개를 골라줘.
+    # 각 항목 사이에 빈 줄을 넣으라는 5번 조건과 예시가 추가되었습니다.
+    prompt = f"""다음 뽐뿌 핫딜 목록에서 가장 추천할 만한 베스트 핫딜 10개를 골라줘.
 
 조건:
 1. 원본 데이터의 제목 형태([쇼핑몰] 상품명 및 가격 정보)를 임의로 바꾸거나 요약하지 말고 100% 그대로 유지해.
 2. 제목 텍스트 전체에 HTML 하이퍼링크(<a href="링크">제목</a>)를 걸어줘.
 3. 별도의 주소창(URL) 텍스트는 아래에 노출하지 마.
 4. 마크다운 기호(*, _, # 등)는 절대 사용하지 마.
+5. 가독성을 위해 각 번호 항목 사이에는 반드시 한 줄(빈 줄)을 띄워줘.
 
 출력 예시:
 1. <a href="https://www.ppomppu.co.kr/...">[G마켓]남여공용 네파 경량 아쿠아 워터슈즈 (14,010원/3,000원)</a>
+
 2. <a href="https://www.ppomppu.co.kr/...">[네이버]SRC 스위트 망고스틱 60g 50개 (36,900원/3,500원)</a>
 
 데이터:
