@@ -6,22 +6,19 @@ import sys
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID = "51555381"
+TELEGRAM_CHAT_ID = "51555381" 
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 TARGET_URL = "https://www.ppomppu.co.kr/zboard/zboard.php?id=ppomppu"
 
 def send_telegram_message(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    # 링크 클릭이 가능하면서도 에러가 나지 않는 기본 모드 사용
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text}
     try:
         response = requests.post(url, json=payload)
-        
-        # 텔레그램이 보내는 진짜 거절 사유를 화면에 출력합니다!
         if response.status_code != 200:
             print(f"❌ [텔레그램 상세 에러]: {response.text}")
-            print(f"👀 현재 입력된 챗ID 값: '{TELEGRAM_CHAT_ID}'")
-            
         response.raise_for_status()
         print("✅ 텔레그램 전송 성공")
     except Exception as e:
@@ -40,62 +37,74 @@ def fetch_ppomppu_deals():
         response.encoding = 'euc-kr' 
         soup = BeautifulSoup(response.text, 'html.parser')
         
-        titles = []
+        deals = []
         items = soup.select('tr.list1, tr.list0, tr.baseList') 
         
         if not items:
-            print("❌ 구조 변경됨: 게시글 목록 태그를 찾을 수 없습니다.")
             return None
             
         for item in items:
             title_element = item.select_one('font.list_title, a.baseList-title span')
             if title_element and title_element.text:
                 title_text = title_element.text.strip()
-                if title_text:
-                     titles.append(title_text)
+                
+                # 링크 주소 추출하기
+                link = ""
+                parent_a = title_element.find_parent('a')
+                if parent_a and parent_a.has_attr('href'):
+                    link_href = parent_a['href']
+                    link = "https://www.ppomppu.co.kr/zboard/" + link_href
+
+                if title_text and link:
+                    deals.append(f"제목: {title_text}\n링크: {link}")
                      
-        if not titles:
-            print("❌ 제목 수집 실패: 게시글 목록은 찾았으나 제목 텍스트가 없습니다.")
+        if not deals:
             return None
             
-        print(f"✅ 데이터 수집 완료: {len(titles)}개의 제목을 찾았습니다.")
-        return "\n".join(titles[:20])
+        return "\n\n".join(deals[:20])
         
     except Exception as e:
-        print(f"❌ 수집 오류 (네트워크/차단 등): {e}")
+        print(f"❌ 수집 오류: {e}")
         return None
 
 def analyze_and_summarize(data):
-    if not data: 
-        print("❌ LLM 분석 중단: 분석할 데이터가 없습니다.")
-        return None
+    if not data: return None
         
-    prompt = f"다음 뽐뿌 게시판 제목 중 베스트 핫딜 3개를 골라 텔레그램 메시지용으로 예쁘게 요약해.\n\n{data}"
+    prompt = f"""다음 뽐뿌 핫딜 목록에서 가장 추천할 만한 베스트 핫딜 5개를 골라줘.
+조건:
+1. 마크다운 에러가 나지 않게 특수기호(*, _, # 등)는 절대 쓰지 마.
+2. 텔레그램에서 바로 클릭할 수 있게 아래 양식에 맞춰서 깔끔하게 적어.
+
+출력 예시:
+1. [제목]
+링크주소
+
+2. [제목]
+링크주소
+
+데이터:
+{data}"""
+    
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini", 
             messages=[
-                {"role": "system", "content": "너는 쇼핑 핫딜 비서야."},
+                {"role": "system", "content": "너는 쇼핑 핫딜 비서야. 지시한 양식을 반드시 지켜."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.3
         )
-        print("✅ LLM 분석 성공")
         return response.choices[0].message.content
     except Exception as e:
         print(f"❌ LLM 분석 실패: {e}")
         return None
 
 def run_agent():
-    print("--- 봇 실행 시작 ---")
     scraped_data = fetch_ppomppu_deals()
     if scraped_data:
         summary_msg = analyze_and_summarize(scraped_data)
         if summary_msg:
             send_telegram_message(summary_msg)
-    else:
-        print("데이터 수집을 실패하여 이후 작업을 건너뜁니다.")
-    print("--- 봇 실행 완료 ---")
 
 if __name__ == "__main__":
     run_agent()
