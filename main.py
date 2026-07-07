@@ -6,7 +6,7 @@ import sys
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID = "51555381"
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 TARGET_URL = "https://www.ppomppu.co.kr/zboard/zboard.php?id=ppomppu"
@@ -16,6 +16,12 @@ def send_telegram_message(text):
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text}
     try:
         response = requests.post(url, json=payload)
+        
+        # 텔레그램이 보내는 진짜 거절 사유를 화면에 출력합니다!
+        if response.status_code != 200:
+            print(f"❌ [텔레그램 상세 에러]: {response.text}")
+            print(f"👀 현재 입력된 챗ID 값: '{TELEGRAM_CHAT_ID}'")
+            
         response.raise_for_status()
         print("✅ 텔레그램 전송 성공")
     except Exception as e:
