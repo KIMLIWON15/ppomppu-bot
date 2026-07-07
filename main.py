@@ -13,7 +13,8 @@ TARGET_URL = "https://www.ppomppu.co.kr/zboard/zboard.php?id=ppomppu"
 
 def send_telegram_message(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "Markdown"}
+    # 에러 원인이었던 parse_mode="Markdown" 부분을 제거하여 전송 안정성을 높였습니다.
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text}
     try:
         response = requests.post(url, json=payload)
         response.raise_for_status()
@@ -82,18 +83,4 @@ def analyze_and_summarize(data):
         print(f"❌ LLM 분석 실패: {e}")
         return None
 
-def run_agent():
-    print("--- 봇 실행 시작 ---")
-    scraped_data = fetch_ppomppu_deals()
-    if scraped_data:
-        summary_msg = analyze_and_summarize(scraped_data)
-        if summary_msg:
-            send_telegram_message(summary_msg)
-    else:
-        print("데이터 수집을 실패하여 이후 작업을 건너뜁니다.")
-    print("--- 봇 실행 완료 ---")
-
-if __name__ == "__main__":
-    run_agent()
-    # 로그가 안 찍히는 문제를 방지하기 위해 버퍼를 비워줍니다.
-    sys.stdout.flush()
+def run_agent
