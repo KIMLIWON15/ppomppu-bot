@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from openai import OpenAI
 import os
+import sys
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
@@ -14,29 +15,57 @@ def send_telegram_message(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "Markdown"}
     try:
-        requests.post(url, json=payload)
+        response = requests.post(url, json=payload)
+        response.raise_for_status()
+        print("✅ 텔레그램 전송 성공")
     except Exception as e:
-        print(f"텔레그램 전송 실패: {e}")
+        print(f"❌ 텔레그램 전송 실패: {e}")
 
 def fetch_ppomppu_deals():
-    headers = {"User-Agent": "Mozilla/5.0"}
+    # 사람처럼 보이도록 User-Agent 정보 강화
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+        "Accept-Language": "ko-KR,ko;q=0.9",
+        "Referer": "https://www.ppomppu.co.kr/"
+    }
+    
     try:
         response = requests.get(TARGET_URL, headers=headers)
+        response.raise_for_status()
         response.encoding = 'euc-kr' 
         soup = BeautifulSoup(response.text, 'html.parser')
-
+        
         titles = []
-        for item in soup.select('tr.list1, tr.list0'):
-            title_element = item.select_one('font.list_title')
+        # 사이트 구조 변경을 대비하여 여러 태그 조합 시도
+        items = soup.select('tr.list1, tr.list0, tr.baseList') 
+        
+        if not items:
+            print("❌ 구조 변경됨: 게시글 목록 태그를 찾을 수 없습니다.")
+            return None
+            
+        for item in items:
+            title_element = item.select_one('font.list_title, a.baseList-title span')
             if title_element and title_element.text:
-                titles.append(title_element.text.strip())
+                title_text = title_element.text.strip()
+                if title_text:
+                     titles.append(title_text)
+                     
+        if not titles:
+            print("❌ 제목 수집 실패: 게시글 목록은 찾았으나 제목 텍스트가 없습니다.")
+            return None
+            
+        print(f"✅ 데이터 수집 완료: {len(titles)}개의 제목을 찾았습니다.")
         return "\n".join(titles[:20])
+        
     except Exception as e:
-        print(f"수집 오류: {e}")
+        print(f"❌ 수집 오류 (네트워크/차단 등): {e}")
         return None
 
 def analyze_and_summarize(data):
-    if not data: return None
+    if not data: 
+        print("❌ LLM 분석 중단: 분석할 데이터가 없습니다.")
+        return None
+        
     prompt = f"다음 뽐뿌 게시판 제목 중 베스트 핫딜 3개를 골라 텔레그램 메시지용으로 예쁘게 요약해.\n\n{data}"
     try:
         response = client.chat.completions.create(
@@ -47,18 +76,24 @@ def analyze_and_summarize(data):
             ],
             temperature=0.3
         )
+        print("✅ LLM 분석 성공")
         return response.choices[0].message.content
     except Exception as e:
-        print(f"LLM 분석 실패: {e}")
+        print(f"❌ LLM 분석 실패: {e}")
         return None
 
 def run_agent():
+    print("--- 봇 실행 시작 ---")
     scraped_data = fetch_ppomppu_deals()
     if scraped_data:
         summary_msg = analyze_and_summarize(scraped_data)
         if summary_msg:
             send_telegram_message(summary_msg)
-            print("작업 완료 및 메시지 전송 성공")
+    else:
+        print("데이터 수집을 실패하여 이후 작업을 건너뜁니다.")
+    print("--- 봇 실행 완료 ---")
 
 if __name__ == "__main__":
     run_agent()
+    # 로그가 안 찍히는 문제를 방지하기 위해 버퍼를 비워줍니다.
+    sys.stdout.flush()
