@@ -1,0 +1,28 @@
+name: Ppomppu Hotdeal Agent
+
+on:
+  schedule:
+    - cron: '0 * * * *' # 매시간 정각마다 실행
+  workflow_dispatch: # 수동 실행 버튼
+
+jobs:
+  run-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 내 코드 가져오기
+        uses: actions/checkout@v4
+
+      - name: 파이썬 설치하기
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 필요 패키지 설치하기
+        run: pip install -r requirements.txt
+
+      - name: 파이썬 스크립트 실행하기
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python main.py
