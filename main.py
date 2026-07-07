@@ -13,7 +13,6 @@ TARGET_URL = "https://www.ppomppu.co.kr/zboard/zboard.php?id=ppomppu"
 
 def send_telegram_message(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    # 에러 원인이었던 parse_mode="Markdown" 부분을 제거하여 전송 안정성을 높였습니다.
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text}
     try:
         response = requests.post(url, json=payload)
@@ -23,7 +22,6 @@ def send_telegram_message(text):
         print(f"❌ 텔레그램 전송 실패: {e}")
 
 def fetch_ppomppu_deals():
-    # 사람처럼 보이도록 User-Agent 정보 강화
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
         "Accept-Language": "ko-KR,ko;q=0.9",
@@ -37,7 +35,6 @@ def fetch_ppomppu_deals():
         soup = BeautifulSoup(response.text, 'html.parser')
         
         titles = []
-        # 사이트 구조 변경을 대비하여 여러 태그 조합 시도
         items = soup.select('tr.list1, tr.list0, tr.baseList') 
         
         if not items:
@@ -84,3 +81,12 @@ def analyze_and_summarize(data):
         return None
 
 def run_agent():
+    print("--- 봇 실행 시작 ---")
+    scraped_data = fetch_ppomppu_deals()
+    if scraped_data:
+        summary_msg = analyze_and_summarize(scraped_data)
+        if summary_msg:
+            send_telegram_message(summary_msg)
+    else:
+        print("데이터 수집을 실패하여 이후 작업을 건너뜁니다.")
+    print("
