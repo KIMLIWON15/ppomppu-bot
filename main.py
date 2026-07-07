@@ -83,4 +83,4 @@ def analyze_and_summarize(data):
         print(f"❌ LLM 분석 실패: {e}")
         return None
 
-def run_agent
+def run_agent():
