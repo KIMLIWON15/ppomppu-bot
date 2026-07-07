@@ -6,7 +6,7 @@ import sys
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
+TELEGRAM_CHAT_ID = "51555381"
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 TARGET_URL = "https://www.ppomppu.co.kr/zboard/zboard.php?id=ppomppu"
