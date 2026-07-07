@@ -89,4 +89,8 @@ def run_agent():
             send_telegram_message(summary_msg)
     else:
         print("데이터 수집을 실패하여 이후 작업을 건너뜁니다.")
-    print("
+    print("--- 봇 실행 완료 ---")
+
+if __name__ == "__main__":
+    run_agent()
+    sys.stdout.flush()
