@@ -1,8 +1,6 @@
 name: Ppomppu Hotdeal Agent
 
 on:
-  schedule:
-    - cron: '0 * * * *' # 매시간 정각마다 실행
   workflow_dispatch: # 수동 실행 버튼
 
 jobs:
